@@ -19,8 +19,8 @@ passElem.send_keys(userpass)
 passElem.submit()
 
 browser.get('https://hello.iitk.ac.in/course/' + course)
-linkElem = browser.find_element_by_id('edit-access-course')
-linkElem.click()
+linkElem = browser.find_element_by_css_selector("input[value='Access Course']")
+linkElem.submit()
 
 noteElems = browser.find_elements_by_css_selector("a[title='splitResourcesData.altText']")
 
@@ -30,7 +30,7 @@ options = webdriver.ChromeOptions()
 options.add_experimental_option(
     'prefs',
     {
-        "download.default_directory": "/Users/apple/Downloads",
+        "download.default_directory": "/Users/apple/Desktop/Personal_Stuff/CS345A",
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
         "plugins.always_open_pdf_externally": True
@@ -38,11 +38,11 @@ options.add_experimental_option(
 )
 driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
-count = 0
+print("Downloading the notes")
 
 for noteElem in noteElems:
     noteURL = noteElem.get_attribute('href')
-    print("Downloading the notes")
+
     if '.pdf' in noteURL:
         print(noteURL.split('?')[0])
         driver.get(noteURL.split('?')[0])
@@ -50,7 +50,7 @@ for noteElem in noteElems:
         print(noteURL.split('?')[0])
         driver.get(noteURL.split('?')[0])
 
-    print("Downloaded the notes")
+print("Downloaded the notes")
 
 import time
 time.sleep(10)
