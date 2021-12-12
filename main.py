@@ -1,56 +1,86 @@
 import getpass
-
+import json
+from contextlib import contextmanager
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
-import requests
+import sys, os
 
-browser = webdriver.Chrome(ChromeDriverManager().install())
-browser.get("https://hello.iitk.ac.in/user/login")
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        sys.stdout = devnull
+        sys.stderr = devnull
+        try:  
+            yield
+        finally:
+            sys.stdout = old_stderr
+            sys.stderr = old_stdout
 
-userElem = browser.find_element_by_id('edit-name')
-passElem = browser.find_element_by_id('edit-pass')
+@contextmanager
+def suppress_stderr():
+    with open(os.devnull, "w") as devnull:
+        old_stderr = sys.stderr
+        sys.stderr = devnull
+        try:  
+            yield
+        finally:
+            sys.stdout = old_stderr
 
-username = input("Enter your IITK username")
+file = open("details.json")
+details = json.load(file)
+
+if len(details['username']) == 0:
+    details['username'] = input("Enter your IITK username: ")
 userpass = getpass.getpass()
-course = input("Enter the course id").lower()
+if len(details['course']) == 0:
+    details['course'] = input("Enter the course id: ").lower()
 
-userElem.send_keys(username)
-passElem.send_keys(userpass)
-passElem.submit()
+print("Downloading the files....")
+print()
 
-browser.get('https://hello.iitk.ac.in/course/' + course)
-linkElem = browser.find_element_by_css_selector("input[value='Access Course']")
-linkElem.submit()
+with suppress_stdout(), suppress_stderr():
+    browser = webdriver.Chrome(ChromeDriverManager().install())
+    browser.get("https://hello.iitk.ac.in/user/login")
 
-noteElems = browser.find_elements_by_css_selector("a[title='splitResourcesData.altText']")
+    userElem = browser.find_element_by_id('edit-name')
+    passElem = browser.find_element_by_id('edit-pass')
 
-download_dir = "/Users/apple/Downloads"
-options = webdriver.ChromeOptions()
+    userElem.send_keys(details['username'])
+    passElem.send_keys(userpass)
+    passElem.submit()
 
-options.add_experimental_option(
-    'prefs',
-    {
-        "download.default_directory": "/Users/apple/Desktop/Personal_Stuff/CS345A",
-        "download.prompt_for_download": False,
-        "download.directory_upgrade": True,
-        "plugins.always_open_pdf_externally": True
-    }
-)
-driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    browser.get('https://hello.iitk.ac.in/course/' + details['course'])
+    linkElem = browser.find_element_by_css_selector("input[value='Access Course']")
+    linkElem.submit()
 
-print("Downloading the notes")
+    noteElems = browser.find_elements_by_css_selector("a[title='splitResourcesData.altText']")
 
-for noteElem in noteElems:
-    noteURL = noteElem.get_attribute('href')
+    options = webdriver.ChromeOptions()
 
-    if '.pdf' in noteURL:
-        print(noteURL.split('?')[0])
-        driver.get(noteURL.split('?')[0])
-    else:
-        print(noteURL.split('?')[0])
-        driver.get(noteURL.split('?')[0])
+    options.add_experimental_option(
+        'prefs',
+        {
+            "download.default_directory": details['download_dir'],
+            "download.prompt_for_download": False,
+            "download.directory_upgrade": True,
+            "plugins.always_open_pdf_externally": True
+        }
+    )
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
-print("Downloaded the notes")
+    for noteElem in noteElems:
+        noteURL = noteElem.get_attribute('href')
 
-import time
-time.sleep(10)
+        if '.pdf' in noteURL:
+            print(noteURL.split('?')[0])
+            driver.get(noteURL.split('?')[0])
+        else:
+            print(noteURL.split('?')[0])
+            driver.get(noteURL.split('?')[0])
+
+    import time
+    time.sleep(6)
+
+print("Downloaded the files...")
